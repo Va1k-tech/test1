@@ -1,0 +1,42 @@
+name: Microservices CI Pipeline
+
+# 1. Триггер: Запускать на любой Push в ветку main или master
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+# 2. Задачи (Jobs)
+jobs:
+  check-quality:
+    runs-on: ubuntu-latest # Арендуем виртуальную машину Linux
+
+    steps:
+    # Шаг А: Скачиваем наш код из репозитория
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Шаг Б: Устанавливаем Python
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    # Шаг В: Устанавливаем библиотеки
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    # Шаг Г: Проверяем стиль кода (Linter)
+    - name: Lint with Flake8
+      run: |
+        # Проверяем все папки, игнорируем ошибки длины строки (E501)
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    # Шаг Д: Запускаем тесты
+    - name: Run Unit Tests
+      run: |
+        # Указываем python path, чтобы тесты видели папки сервисов
+        export PYTHONPATH=$PYTHONPATH:.
+        pytest
